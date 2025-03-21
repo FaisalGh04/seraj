@@ -1,0 +1,27 @@
+# Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.env
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Heroku files
+*.sqlite3
+*.log
+
+# Static files (if not tracked)
+#static/
+#templates/
+
+# macOS files
+.DS_StoreS
+
+# Windows files
+Thumbs.db
