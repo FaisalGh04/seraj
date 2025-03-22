@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, render_template, request, jsonify, Response, g
+from flask import Flask, render_template, request, jsonify, Response
 from openai import OpenAI
-import time
 import os
 import logging
 from dotenv import load_dotenv
@@ -21,23 +20,23 @@ def create_app():
     app = Flask(__name__, template_folder="templates")
     logger.debug(f"Template folder path: {app.template_folder}")
 
-    # Initialize the OpenAI client
+    # Initialize the OpenAI client using the API key from environment variables
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable is not set.")
     client = OpenAI(api_key=api_key)
 
     # Debug: Print the API key to verify it's loaded correctly
-    print("API Key:", api_key)
+    print("API Key loaded successfully.")
 
-    # Store conversation context in Flask's g object
-    @app.before_request
-    def initialize_context():
-        if not hasattr(g, 'context'):
-            g.context = ""
-        if not hasattr(g, 'MAX_CONTEXT_LENGTH'):
-            g.MAX_CONTEXT_LENGTH = 500  # Reduce context size
-        logger.debug(f"Context initialized: {g.context}")
+    # Store conversation history in a dictionary (keyed by session ID)
+    conversation_histories = {}
+
+    # Function to truncate conversation history (based on message count)
+    def truncate_conversation(conversation_history, max_messages=10):
+        while len(conversation_history) > max_messages:
+            conversation_history.pop(1)  # Remove the oldest user-assistant pair (keep system message)
+        return conversation_history
 
     # Routes
     @app.route("/")
@@ -63,6 +62,7 @@ def create_app():
     @app.route("/chat", methods=["GET"])
     def chat_stream():
         user_input = request.args.get("message", "").strip()
+        session_id = request.args.get("session_id", "default")  # Use a session ID to track conversations
         lang = detect(user_input) if user_input else "en"  # Detect language or default to English
         logger.debug(f"Received user input: {user_input} (Language: {lang})")
 
@@ -78,13 +78,22 @@ def create_app():
             logger.debug(f"Input contains non-Arabic/English words. Forcing response in English.")
 
         try:
+            # Initialize conversation history for the session if it doesn't exist
+            if session_id not in conversation_histories:
+                conversation_histories[session_id] = [
+                    {"role": "system", "content": "You are a helpful assistant that responds in the same language as the user's input."}
+                ]
+
+            # Add user message to conversation history
+            conversation_histories[session_id].append({"role": "user", "content": user_input})
+
+            # Truncate conversation history if it exceeds the message limit
+            conversation_histories[session_id] = truncate_conversation(conversation_histories[session_id], max_messages=10)
+
             logger.debug("Sending request to GPT-4 API...")
             response = client.chat.completions.create(
                 model="gpt-4",  # Use "gpt-4" or "gpt-4-1106-preview"
-                messages=[
-                    {"role": "system", "content": f"You are a helpful assistant that responds in the same language as the user's input. The detected language is {lang}. Ensure that punctuation marks are placed at the end of the sentence, not at the beginning."},
-                    {"role": "user", "content": user_input}
-                ],
+                messages=conversation_histories[session_id],
                 stream=True  # Enable streaming
             )
 
@@ -93,9 +102,13 @@ def create_app():
                 full_response = ""
                 for chunk in response:
                     if chunk.choices[0].delta.content:
-                        full_response += chunk.choices[0].delta.content
-                yield f"data: {full_response}\n\n".encode('utf-8')  # Send the full response
+                        chunk_content = chunk.choices[0].delta.content
+                        full_response += chunk_content
+                        yield f"data: {chunk_content}\n\n".encode('utf-8')  # Send each chunk individually
                 yield "data: [END]\n\n".encode('utf-8')  # Signal the end of the response
+
+                # Add assistant's response to conversation history
+                conversation_histories[session_id].append({"role": "assistant", "content": full_response})
 
             return Response(generate(), mimetype="text/event-stream; charset=utf-8")
         except Exception as e:

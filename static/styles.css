@@ -68,9 +68,9 @@ nav a {
     background-color: #e5ddd5;
     display: flex;
     flex-direction: column;
+    scroll-behavior: smooth;
 }
 
-/* Messages from the AI (left-aligned) */
 .message.received {
     background-color: #dcf8c6;
     color: #000;
@@ -79,11 +79,10 @@ nav a {
     margin-bottom: 10px;
     max-width: 70%;
     align-self: flex-start;
-    direction: ltr; /* Ensure English text is LTR */
+    direction: ltr;
     text-align: left;
 }
 
-/* Messages from the user (right-aligned) */
 .message.sent {
     background-color: #ffffff;
     color: #000;
@@ -93,13 +92,12 @@ nav a {
     max-width: 70%;
     align-self: flex-end;
     border: 1px solid #ddd;
-    direction: ltr; /* Ensure English text is LTR */
+    direction: ltr;
     text-align: left;
 }
 
-/* Arabic messages */
 .message.received.arabic {
-    direction: rtl; /* Ensure Arabic text is RTL */
+    direction: rtl;
     text-align: right;
 }
 
@@ -108,15 +106,20 @@ nav a {
     padding: 10px;
     background-color: #f0f0f0;
     border-top: 1px solid #ddd;
+    align-items: center;
 }
 
-.chat-input input {
+.chat-input textarea {
     flex: 1;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 20px;
     margin-right: 10px;
     outline: none;
+    resize: none;
+    overflow-y: hidden;
+    min-height: 40px;
+    max-height: 120px;
 }
 
 .chat-input button {
