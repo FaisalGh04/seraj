@@ -17,14 +17,16 @@
         <a href="/contact">Contact</a>
     </nav>
     <div class="container">
-        <h2>Chat with Our AI Bot</h2>
         <div class="chat-container">
-            <div class="chat-header">AI Chatbot</div>
-            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-header">Chat</div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="message received">
+                    <p>Hello! How can I assist you today?</p>
+                </div>
+            </div>
             <div class="chat-input">
                 <input type="text" id="user-input" placeholder="Type your message...">
                 <button onclick="sendMessage()">Send</button>
-                <button onclick="clearChat()">Clear Chat</button>
                 <button onclick="startVoiceRecognition()">🎤</button>
             </div>
         </div>
@@ -33,7 +35,6 @@
         <p>&copy; 2024 AI Chatbot Website. All rights reserved.</p>
     </footer>
 
-    <!-- Link to the external JavaScript file -->
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
