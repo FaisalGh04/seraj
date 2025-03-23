@@ -1,10 +1,12 @@
-# -*- coding: utf-8 -*-
 from flask import Flask, render_template, request, jsonify, Response
 from openai import OpenAI
 import os
 import logging
+import secrets
 from dotenv import load_dotenv
 from langdetect import detect, DetectorFactory
+import whisper
+from werkzeug.utils import secure_filename
 
 # Load environment variables from .env file
 load_dotenv()
@@ -18,6 +20,16 @@ DetectorFactory.seed = 0
 
 def create_app():
     app = Flask(__name__, template_folder="templates")
+    
+    # Set the secret key (generate one if not provided in environment variables)
+    app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(16))
+    app.config['UPLOAD_FOLDER'] = "uploads"  # Define the upload folder
+    logger.debug(f"Secret Key: {app.config['SECRET_KEY']}")
+
+    # Ensure the upload folder exists
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        os.makedirs(app.config['UPLOAD_FOLDER'])
+
     logger.debug(f"Template folder path: {app.template_folder}")
 
     # Initialize the OpenAI client using the API key from environment variables
@@ -25,6 +37,9 @@ def create_app():
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable is not set.")
     client = OpenAI(api_key=api_key)
+
+    # Load the Whisper model
+    whisper_model = whisper.load_model("base")  # Use "base" for faster performance, or "medium"/"large" for better accuracy
 
     # Debug: Print the API key to verify it's loaded correctly
     print("API Key loaded successfully.")
@@ -115,10 +130,34 @@ def create_app():
             logger.error(f"Error during chat: {e}")
             return jsonify({"response": "An error occurred while processing your request."}), 500
 
+    @app.route("/upload-audio", methods=["POST"])
+    def upload_audio():
+        if "audio" not in request.files:
+            return jsonify({"error": "No audio file provided"}), 400
+
+        audio_file = request.files["audio"]
+        if audio_file.filename == "":
+            return jsonify({"error": "No selected file"}), 400
+
+        # Save the uploaded file
+        filename = secure_filename(audio_file.filename)
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        audio_file.save(filepath)
+
+        # Transcribe the audio file using Whisper
+        try:
+            result = whisper_model.transcribe(filepath)
+            transcript = result["text"]
+            os.remove(filepath)  # Clean up the file after processing
+            return jsonify({"transcript": transcript})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     return app
 
 # Create the Flask app
 app = create_app()
+
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True)

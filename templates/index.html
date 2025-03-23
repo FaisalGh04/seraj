@@ -24,7 +24,9 @@
                     <p>Hello! How can I assist you today?</p>
                 </div>
             </div>
-            <div class="chat-input">
+            <!-- Scroll-to-bottom button -->
+            <button id="scroll-to-bottom" onclick="scrollToBottom()">↓</button>
+            <div class="chat-input" id="chat-input">
                 <textarea id="user-input" placeholder="Type your message..." rows="1"></textarea>
                 <button onclick="sendMessage()">Send</button>
                 <button onclick="startVoiceRecognition()">🎤</button>

@@ -9,19 +9,23 @@ body, html {
 body {
     display: flex;
     flex-direction: column;
+    height: 100vh;
+    overflow: hidden; /* Prevent overall page scrolling */
 }
 
 header {
-    background-color: #075e54;
+    background-color: #000000;
     color: white;
     padding: 10px 20px;
     text-align: center;
+    z-index: 10;
 }
 
 nav {
-    background-color: #128c7e;
+    background-color: #191d1c;
     padding: 10px;
     text-align: center;
+    z-index: 10;
 }
 
 nav a {
@@ -37,6 +41,7 @@ nav a {
     flex-direction: column;
     padding: 20px;
     background-color: #f0f2f5;
+    overflow: hidden; /* Prevent container scrolling */
 }
 
 .chat-container {
@@ -50,55 +55,50 @@ nav a {
     max-width: 800px;
     margin: 0 auto;
     width: 100%;
+    position: relative;
 }
 
 .chat-header {
-    background-color: #075e54;
+    background-color: #5c5b5b;
     color: white;
     padding: 15px;
     font-size: 18px;
     font-weight: bold;
     text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 5;
 }
 
 .chat-messages {
     flex: 1;
     padding: 15px;
     overflow-y: auto;
-    background-color: #e5ddd5;
+    background-color: #e9e2e2;
     display: flex;
     flex-direction: column;
-    scroll-behavior: smooth;
+    scroll-behavior: smooth; /* Smooth scrolling */
+    max-height: calc(100vh - 250px); /* Fixed height for scrolling */
+}
+
+.message {
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    max-width: 70%;
 }
 
 .message.received {
-    background-color: #dcf8c6;
-    color: #000;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    max-width: 70%;
+    background-color: #33ad0a;
+    color: #ffffff;
     align-self: flex-start;
-    direction: ltr;
-    text-align: left;
 }
 
 .message.sent {
-    background-color: #ffffff;
-    color: #000;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    max-width: 70%;
+    background-color: #000000;
+    color: #ffffff;
     align-self: flex-end;
     border: 1px solid #ddd;
-    direction: ltr;
-    text-align: left;
-}
-
-.message.received.arabic {
-    direction: rtl;
-    text-align: right;
 }
 
 .chat-input {
@@ -107,6 +107,9 @@ nav a {
     background-color: #f0f0f0;
     border-top: 1px solid #ddd;
     align-items: center;
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
 }
 
 .chat-input textarea {
@@ -125,20 +128,43 @@ nav a {
 .chat-input button {
     padding: 10px 15px;
     border: none;
-    background-color: #075e54;
+    background-color: #000000;
     color: white;
     border-radius: 20px;
     cursor: pointer;
+    margin-left: 10px;
 }
 
 .chat-input button:hover {
+    background-color: #000000;
+}
+
+/* Scroll-to-bottom button */
+#scroll-to-bottom {
+    position: absolute;
+    bottom: 130px; /* Position above the chat input */
+    right: 20px;
+    background-color: #3f4343;
+    color: white;
+    border: none;
+    border-radius: 50%; /* Circular button */
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: none; /* Hidden by default */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 10; /* Ensure it's above other elements */
+}
+
+#scroll-to-bottom:hover {
     background-color: #128c7e;
 }
 
 footer {
-    background-color: #075e54;
+    background-color: #000000;
     color: white;
     text-align: center;
     padding: 10px;
     font-size: 14px;
+    z-index: 10;
 }
