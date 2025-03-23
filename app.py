@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, session
 from openai import OpenAI
 import os
 import logging
 import secrets
 from dotenv import load_dotenv
 from langdetect import detect, DetectorFactory
+from datetime import timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,6 +22,8 @@ def create_app():
     
     # Set the secret key (generate one if not provided in environment variables)
     app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(16))
+    # Set session lifetime
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
     logger.debug(f"Secret Key: {app.config['SECRET_KEY']}")
 
     logger.debug(f"Template folder path: {app.template_folder}")
@@ -46,6 +49,12 @@ def create_app():
     # Routes
     @app.route("/")
     def home():
+        # Generate a new session ID if one doesn't exist
+        if 'session_id' not in session:
+            session['session_id'] = secrets.token_hex(16)
+            session.permanent = True
+            logger.debug(f"Created new session ID: {session['session_id']}")
+        
         logger.debug("Rendering home page...")
         return render_template("index.html")
 
@@ -67,7 +76,16 @@ def create_app():
     @app.route("/chat", methods=["GET"])
     def chat_stream():
         user_input = request.args.get("message", "").strip()
-        session_id = request.args.get("session_id", "default")  # Use a session ID to track conversations
+        
+        # Ensure we have a session ID
+        if 'session_id' not in session:
+            session['session_id'] = secrets.token_hex(16)
+            session.permanent = True
+            logger.debug(f"Created new session ID: {session['session_id']}")
+        
+        session_id = session['session_id']
+        logger.debug(f"Using session ID: {session_id}")
+        
         lang = detect(user_input) if user_input else "en"  # Detect language or default to English
         logger.debug(f"Received user input: {user_input} (Language: {lang})")
 
@@ -119,6 +137,15 @@ def create_app():
         except Exception as e:
             logger.error(f"Error during chat: {e}")
             return jsonify({"response": "An error occurred while processing your request."}), 500
+
+    # Add a route to clear the session/start a new chat
+    @app.route("/new_chat", methods=["GET"])
+    def new_chat():
+        # Generate a new session ID
+        session['session_id'] = secrets.token_hex(16)
+        session.permanent = True
+        logger.debug(f"Created new session ID: {session['session_id']}")
+        return jsonify({"status": "success", "message": "New chat session created"})
 
     return app
 
