@@ -4,7 +4,7 @@ import os
 import logging
 import secrets
 from dotenv import load_dotenv
-from langdetect import detect, DetectorFactory
+from langdetect import detect, DetectorFactory, LangDetectException
 from datetime import timedelta
 
 # Load environment variables from .env file
@@ -41,7 +41,7 @@ def create_app():
     conversation_histories = {}
 
     # Function to truncate conversation history (based on message count)
-    def truncate_conversation(conversation_history, max_messages=10):
+    def truncate_conversation(conversation_history, max_messages=100):
         while len(conversation_history) > max_messages:
             conversation_history.pop(1)  # Remove the oldest user-assistant pair (keep system message)
         return conversation_history
@@ -86,7 +86,22 @@ def create_app():
         session_id = session['session_id']
         logger.debug(f"Using session ID: {session_id}")
         
-        lang = detect(user_input) if user_input else "en"  # Detect language or default to English
+        # Handle empty messages
+        if not user_input:
+            logger.debug("Empty message received")
+            return jsonify({"response": "Please enter a message."}), 400
+            
+        # Handle language detection with error handling
+        try:
+            lang = detect(user_input)
+            logger.debug(f"Detected language: {lang}")
+        except LangDetectException as e:
+            logger.warning(f"Language detection failed: {e}, defaulting to English")
+            lang = "en"  # Default to English on detection failure
+        except Exception as e:
+            logger.warning(f"Unexpected error in language detection: {e}, defaulting to English")
+            lang = "en"
+            
         logger.debug(f"Received user input: {user_input} (Language: {lang})")
 
         # Handle exit command
@@ -111,7 +126,7 @@ def create_app():
             conversation_histories[session_id].append({"role": "user", "content": user_input})
 
             # Truncate conversation history if it exceeds the message limit
-            conversation_histories[session_id] = truncate_conversation(conversation_histories[session_id], max_messages=10)
+            conversation_histories[session_id] = truncate_conversation(conversation_histories[session_id], max_messages=100)
 
             logger.debug("Sending request to GPT-4 API...")
             response = client.chat.completions.create(
